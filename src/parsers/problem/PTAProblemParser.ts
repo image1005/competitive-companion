@@ -10,9 +10,28 @@ export class PTAProblemParser extends Parser {
 
   public async parse(url: string, html: string): Promise<Sendable> {
     const elem = htmlToElement(html);
-    const task = new TaskBuilder('PTA').setUrl(url);
 
     console.log('[PTA Parser] Starting parse...');
+
+    // Extract problem ID from URL and build short URL
+    // Original URL: https://pintia.cn/problem-sets/{setId}/exam/problems/type/{type}?problemSetProblemId={problemId}
+    // Short URL: https://pintia.cn/problem/{problemCode}
+    let shortUrl = url;
+    const problemCodeMatch = /problemSetProblemId=(\d+)/.exec(url);
+    if (problemCodeMatch) {
+      // Try to extract problem code from the page title
+      const titleEl = elem.querySelector('.text-darkest');
+      if (titleEl?.textContent) {
+        const titleText = titleEl.textContent.trim();
+        // Extract problem code like "L3-1" from title like "L3-1 人生就像一场旅行"
+        const codeMatch = /^([A-Z]?\d+[\-\.]?\d*)/.exec(titleText);
+        if (codeMatch) {
+          shortUrl = `https://pintia.cn/problem/${codeMatch[1]}`;
+        }
+      }
+    }
+
+    const task = new TaskBuilder('PTA').setUrl(shortUrl);
 
     // Check if user is logged in
     const isLoginPage = elem.querySelector('.content_tiP2H') !== null || 
